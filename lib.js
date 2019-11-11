@@ -190,7 +190,7 @@ class Body {
     }
     static detectCollision(a, b) {
         // start with body a and body b
-
+        
     }
 }
 

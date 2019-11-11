@@ -2,7 +2,7 @@ let c = document.getElementById("canvas");
 let ctx = c.getContext("2d");
 
 let body = new Body({
-    vertices: generatePoints(10),
+    vertices: generatePoints(10,150),
 })
 
 function setup() {
@@ -31,10 +31,10 @@ function generatePoints(n,r) {
     let out = [];
     let a = 0;
     for (let i=0; i<n; i++) {
-        let angle = ((Math.PI*2)-a)*Math.random();
+        let angle = (((2*Math.PI)/n)*Math.random()) + ((i+1)*(((2*Math.PI)/n)));
         out.push(new Point({
             a: angle,
-            d: Math.random() * 0.5 * r,
+            d: ((Math.random()*0.5)+0.25) * 0.5 * r,
         }));
         a += angle;
     }
