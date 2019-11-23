@@ -16,7 +16,7 @@ class Point {
             this.x = p.x;
             this.y = p.y;
         } else {
-            console.log(new Error("Incorrect Input Type"));
+            new Error("Incorrect Input Type");
         }
     }
     // converts Cartesian (x,y) to Polar (a,d) coordinates
@@ -42,6 +42,13 @@ class Point {
         return new Point({
             a: a + this.a,
             d: this.d
+        })
+    }
+    // accepts x and y position values to translate by
+    translate(x,y) {
+        return new Point({
+            x: this.x + x,
+            y: this.y + y
         })
     }
 }
@@ -80,7 +87,7 @@ class Line {
             };
         }
         // y = mx + b
-        let m = p2.x - p1.x / p2.y - p1.y;
+        let m = (p2.y - p1.y) / (p2.x - p1.x);
         // p1.y = (m * p1.x) + b
         let b = p1.y - (m * p1.x);
         return {
@@ -91,39 +98,43 @@ class Line {
     }
     static intersect(l1, l2) {
         let x, y;
-        if (l1.m == undefined && l2.m == undefined) {
-            if (l1.x == l2.x) {
+        if (l1.f.m == undefined && l2.f.m == undefined) {
+            if (l1.f.x == l2.f.x) {
                 return {c:true,x:l1.x,y:undefined};
             }
             return {c:false,x:undefined,y:undefined};
-        } else if (l1.m == undefined) {
-            x = l1.x;
-            y = (l2.m * l1.x) + l2.b;
+        } else if (l1.f.m == undefined) {
+            x = l1.f.x;
+            y = (l2.f.m * l1.f.x) + l2.f.b;
             if (inRange(Math.min(l2.p1.x,l2.p2.x), Math.max(l2.p1.x,l2.p1.y),x) &&
-            inRange(Math.min(l1.p1.y,l1.p2.y), Math.max(l1,p1.y,l1.p2.y),y) &&
-            inRange(Math.min(l2.p1.y,l2.p2.y), Math.max(l2,p1.y,l2.p2.y),y)) {
+            inRange(Math.min(l1.p1.y,l1.p2.y), Math.max(l1.p1.y,l1.p2.y),y) &&
+            inRange(Math.min(l2.p1.y,l2.p2.y), Math.max(l2.p1.y,l2.p2.y),y)) {
                 return {c:true,x:x,y:y};
             }
             return {c:false,x:x,y:y};
-        } else if (l2.m == undefined) {
-            x = l2.x;
-            y = (l1.m * l2.x) + l1.b;
+        } else if (l2.f.m == undefined) {
+            x = l2.f.x;
+            y = (l1.f.m * l2.f.x) + l1.f.b;
             if (inRange(Math.min(l1.p1.x,l1.p2.x), Math.max(l1.p1.x,l1.p2.x),x) &&
-            inRange(Math.min(l1.p1.y,l1.p2.y), Math.max(l1,p1.y,l1.p2.y),y) &&
-            inRange(Math.min(l2.p1.y,l2.p2.y), Math.max(l2,p1.y,l2.p2.y),y)) {
+            inRange(Math.min(l1.p1.y,l1.p2.y), Math.max(l1.p1.y,l1.p2.y),y) &&
+            inRange(Math.min(l2.p1.y,l2.p2.y), Math.max(l2.p1.y,l2.p2.y),y)) {
                 return {c:true,x:x,y:y};
             }
             return {c:false,x:x,y:y};
         } else {
             // (l1.m * x) + l1.b = (l2.m * x) + l2.b
             // x(l1.m - l2.m) = l2.b - l1.b
-            x = (l2.b - l1.b) / (l1.m - l2.m);
-            y = (l1.m * x) + l1.b;
-            // checks if the x and y of the intersection is actually within the constraints of the line segment
-            if (inRange(Math.min(l1.p1.x,l1.p2.x), Math.max(l1.p1.x,l1.p2.x),x) &&
-            inRange(Math.min(l2.p1.x,l2.p2.x), Math.max(l2.p1.x,l2.p1.y),x) &&
-            inRange(Math.min(l1.p1.y,l1.p2.y), Math.max(l1,p1.y,l1.p2.y),y) &&
-            inRange(Math.min(l2.p1.y,l2.p2.y), Math.max(l2,p1.y,l2.p2.y),y)) {
+            x = (l2.f.b - l1.f.b) / (l1.f.m - l2.f.m);
+            y = (l1.f.m * x) + l1.f.b;
+            // checks if the x and y of the intersection is actually within the constraints of the line segments
+            if (inRange(l1.p1.x,l1.p2.x,x) &&
+            inRange(l2.p1.x,l2.p2.x,x) &&
+            inRange(l1.p1.y,l1.p2.y,y) &&
+            inRange(l2.p1.y,l2.p2.y,y)) {
+                // console.log(inRange(l1.p1.x,l1.p2.x,x),
+                // inRange(l2.p1.x,l2.p2.x,x),
+                // inRange(l1.p1.y,l1.p2.y,y),
+                // inRange(l2.p1.y,l2.p2.y,y))
                 return {c:true,x:x,y:y};
             }
             return {c:false,x:x,y:y};
@@ -143,6 +154,7 @@ class Body {
             y: 0,
             r: 0,
         }
+        this.movable = (obj.movable) ? obj.movable : true;
         // this.vertices must consist of an array of (the class) Point's
         this.vertices = obj.vertices || [];
         // this.lines updates once every update() because they account for rotation
@@ -156,30 +168,30 @@ class Body {
             let v = this.vertices;
             for (let i = 0; i < v.length; i++) {
                 // console.log(v[0].rotate(this.p.r), v[(i + 1)%v.length].rotate(this.p.r));
-                console.log(v,v[i]);
-                lines.push(new Line(v[i].rotate(this.p.r), v[(i + 1)%v.length].rotate(this.p.r)));
+                lines.push(new Line(v[i].rotate(this.p.r).translate(this.p.x,this.p.y), v[(i + 1)%v.length].rotate(this.p.r).translate(this.p.x,this.p.y)));
             }
             this.lines = lines;
         }
     }
     updateVelocity(x,y,r) {
-
+        // updates velocities
+        this.v.x += x;
+        this.v.y += y;
+        this.v.r += r;
     }
     update() {
         // updates position from velocity
         this.p.x += this.v.x;
         this.p.y += this.v.y;
         this.p.r += this.v.r;
-
     }
-    addVertices() {
-
+    changeVertices(arr) {
+        this.vertices = arr;
     }
     draw(ctx,fill) {
         ctx.beginPath();
         ctx.moveTo(this.lines[0].p1.x,this.lines[0].p1.y);
         for (let i=0; i < this.lines.length; i++) {
-            console.log(this.lines[i]);
             ctx.lineTo(this.lines[i].p2.x,this.lines[i].p2.y);
         }
         if (fill == true) {
@@ -188,21 +200,71 @@ class Body {
             ctx.stroke();
         }
     }
+    // make sure to run points to lines first!
     static detectCollision(a, b) {
         // start with body a and body b
-        
+        for (let i=0; i<a.lines.length; i++) {
+            for (let j=0; j<b.lines.length; j++) {
+                let res = Line.intersect(a.lines[i],b.lines[j])
+                if (res.c == true) {
+                    // draw lines that are intersecting
+                    // ctx.beginPath();
+                    // ctx.lineWidth = 5;
+                    // ctx.moveTo(a.lines[i].p1.x,a.lines[i].p1.y);
+                    // ctx.lineTo(a.lines[i].p2.x,a.lines[i].p2.y);
+                    // ctx.stroke();
+                    // ctx.beginPath();
+                    // ctx.moveTo(b.lines[j].p1.x,b.lines[j].p1.y);
+                    // ctx.lineTo(b.lines[j].p2.x,b.lines[j].p2.y);
+                    // ctx.stroke();
+                    // ctx.lineWidth = 1;
+                    return {c:true, x:res.x, y:res.y}
+                }
+            }
+        }
+        return {c:false, x:undefined, y:undefined}
     }
 }
 
 class Environment {
     constructor(obj) {
-        this.bodies = obj.bodies || [];
+        this.bodies = (obj.bodies) ? obj.bodies : {};
         this.ctx = obj.ctx || undefined;
+        this.bodiesLength = (obj.bodies) ? obj.bodies.length : 0;
+    }
+    async update() {
+        let b = Object.keys(this.bodies);
+        for (let i=0; i<b.length; i++) {
+            let ei = this.bodies[b[i]];
+            for (let j=i; j<b.length; j++) {
+                let ej = this.bodies[b[j]];
+                let d = Body.detectCollision(ei,ej);
+                // if there is a collision, do physics
+                if (d.c == true) {
+                    let biv = ei.v,
+                    bjv = ej.v;
+                    ej.v = (ei.movable == true) ? biv : bjv;
+                    ei.v = (ej.movable == true) ? bjv : biv;
+                }
+            }
+            // console.log(ei.movable)
+            if (ei.movable == true) {
+                // console.log(ei.movable);
+                ei.update();
+            }
+        }
     }
     draw() {
         for (let i=0; i<this.bodies; i++) {
 
         }
+    }
+    addBody(body,id) {
+        this.bodies[(id) ? id : "body"+this.bodiesLength] = body;
+        this.bodiesLength++;
+    }
+    rmvBody(id) {
+        delete this.bodies[id];
     }
 }
 
